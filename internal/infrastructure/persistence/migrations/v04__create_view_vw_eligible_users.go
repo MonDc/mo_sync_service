@@ -12,7 +12,7 @@ WHERE d.revoked_at IS NULL;
 -- =====================================================
 
 CREATE VIEW `vw_users_with_designations` AS
-SELECT 
+SELECT
     u.*,
     GROUP_CONCAT(d.designation_type) as active_designations
 FROM `ma_users` u

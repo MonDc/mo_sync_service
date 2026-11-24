@@ -8,17 +8,17 @@ CREATE TABLE `ma_users_sync_audit` (
     `started_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `completed_at` TIMESTAMP NULL,
     `status` ENUM('running','completed','failed') DEFAULT 'running',
-    
+
     `users_processed` INT DEFAULT 0,
     `users_succeeded` INT DEFAULT 0,
     `users_failed` INT DEFAULT 0,
-    
+
     `error_summary` TEXT,
     `triggered_by` VARCHAR(255), -- 'schedule', 'manual', 'event'
-    
+
     INDEX `idx_sync_audit_status` (`status`),
     INDEX `idx_sync_audit_started` (`started_at`)
-    
+
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =====================================================
@@ -35,7 +35,7 @@ WHERE d.revoked_at IS NULL;
 -- =====================================================
 
 CREATE VIEW `vw_users_with_designations` AS
-SELECT 
+SELECT
     u.*,
     GROUP_CONCAT(d.designation_type) as active_designations
 FROM `ma_users` u
