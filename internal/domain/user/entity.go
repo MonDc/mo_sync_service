@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/mondc/ma_user_sync_service/internal/domain/errors"
+	"github.com/mondc/mo_sync_service/internal/domain/errors"
 )
 
 type User struct {

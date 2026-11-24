@@ -1,41 +1,40 @@
 package handlers
 
 import (
-    "encoding/json"
-    "net/http"
-    
-    "github.com/gorilla/mux"
-    "github.com/mondc/ma_user_sync_service/internal/application/commands"
-    "github.com/mondc/ma_user_sync_service/internal/application/queries"
-    "github.com/mondc/ma_user_sync_service/internal/domain/errors"
-    "github.com/mondc/ma_user_sync_service/internal/infrastructure/observability/logger"
-    "github.com/mondc/ma_user_sync_service/internal/infrastructure/observability/metrics"
-    "github.com/mondc/ma_user_sync_service/internal/infrastructure/observability/tracing"
-    "go.uber.org/zap"
+	"encoding/json"
+	"net/http"
+
+	"github.com/gorilla/mux"
+	"github.com/mondc/mo_sync_service/internal/application/commands"
+	"github.com/mondc/mo_sync_service/internal/application/queries"
+	"github.com/mondc/mo_sync_service/internal/domain/errors"
+	"github.com/mondc/mo_sync_service/internal/infrastructure/observability/metrics"
+	"github.com/mondc/mo_sync_service/internal/infrastructure/observability/tracing"
+	"go.uber.org/zap"
 )
 
 type UserHandler struct {
-    syncUserHandler  *commands.SyncUserHandler
-    syncAllHandler   *commands.SyncAllUsersHandler
-    getUserHandler   *queries.GetUserHandler
-    logger          *zap.Logger
-    metrics         *metrics.Metrics
+	syncUserHandler *commands.SyncUserHandler
+	syncAllHandler  *commands.SyncAllUsersHandler
+	getUserHandler  *queries.GetUserHandler
+	logger          *zap.Logger
+	metrics         *metrics.Metrics
 }
 
 func NewUserHandler(
-    syncUserHandler *commands.SyncUserHandler,
-    syncAllHandler *commands.SyncAllUsersHandler,
-    getUserHandler *queries.GetUserHandler,
-    logger *zap.Logger,
-    metrics *metrics.Metrics,
+	syncUserHandler *commands.SyncUserHandler,
+	syncAllHandler *commands.SyncAllUsersHandler,
+	getUserHandler *queries.GetUserHandler,
+	logger *zap.Logger,
+	metrics *metrics.Metrics,
 ) *UserHandler {
-    return &UserHandler{
-        syncUserHandler: syncUserHandler,
-        syncAllHandler:  syncAllHandler,
-        getUserHandler:  getUserHandler,
-        logger:         logger,
-        metrics:        metrics,
-    }
+	return &UserHandler{
+		syncUserHandler: syncUserHandler,
+		syncAllHandler:  syncAllHandler,
+		getUserHandler:  getUserHandler,
+		logger:          logger,
+		metrics:         metrics,
+	}
 }
 
 // SyncUser godoc
@@ -50,33 +49,33 @@ func NewUserHandler(
 // @Failure 500 {object} map[string]string
 // @Router /api/v1/users/{id}/sync [post]
 func (h *UserHandler) SyncUser(w http.ResponseWriter, r *http.Request) {
-    ctx, span := tracing.StartSpan(r.Context(), "SyncUser")
-    defer span.End()
+	ctx, span := tracing.StartSpan(r.Context(), "SyncUser")
+	defer span.End()
 
-    vars := mux.Vars(r)
-    userID := vars["id"]
+	vars := mux.Vars(r)
+	userID := vars["id"]
 
-    h.metrics.ActiveSyncs.Inc()
-    defer h.metrics.ActiveSyncs.Dec()
+	h.metrics.ActiveSyncs.Inc()
+	defer h.metrics.ActiveSyncs.Dec()
 
-    timer := h.metrics.UserSyncDuration.WithLabelValues("sync_user").StartTimer()
-    defer timer.ObserveDuration()
+	timer := h.metrics.UserSyncDuration.WithLabelValues("sync_user").StartTimer()
+	defer timer.ObserveDuration()
 
-    cmd := commands.SyncUserCommand{UserID: userID}
-    user, err := h.syncUserHandler.Handle(ctx, cmd)
-    if err != nil {
-        h.metrics.UserSyncErrors.WithLabelValues("sync_failed").Inc()
-        h.handleError(w, err)
-        return
-    }
+	cmd := commands.SyncUserCommand{UserID: userID}
+	user, err := h.syncUserHandler.Handle(ctx, cmd)
+	if err != nil {
+		h.metrics.UserSyncErrors.WithLabelValues("sync_failed").Inc()
+		h.handleError(w, err)
+		return
+	}
 
-    h.metrics.UserSyncTotal.WithLabelValues("success").Inc()
-    h.logger.Info("user synced successfully",
-        zap.String("user_id", userID),
-        zap.Time("synced_at", *user.SyncedAt),
-    )
+	h.metrics.UserSyncTotal.WithLabelValues("success").Inc()
+	h.logger.Info("user synced successfully",
+		zap.String("user_id", userID),
+		zap.Time("synced_at", *user.SyncedAt),
+	)
 
-    h.respondWithJSON(w, http.StatusOK, user)
+	h.respondWithJSON(w, http.StatusOK, user)
 }
 
 // SyncAllUsers godoc
@@ -89,26 +88,26 @@ func (h *UserHandler) SyncUser(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} map[string]string
 // @Router /api/v1/users/sync/all [post]
 func (h *UserHandler) SyncAllUsers(w http.ResponseWriter, r *http.Request) {
-    ctx, span := tracing.StartSpan(r.Context(), "SyncAllUsers")
-    defer span.End()
+	ctx, span := tracing.StartSpan(r.Context(), "SyncAllUsers")
+	defer span.End()
 
-    timer := h.metrics.UserSyncDuration.WithLabelValues("sync_all").StartTimer()
-    defer timer.ObserveDuration()
+	timer := h.metrics.UserSyncDuration.WithLabelValues("sync_all").StartTimer()
+	defer timer.ObserveDuration()
 
-    users, err := h.syncAllHandler.Handle(ctx)
-    if err != nil {
-        h.metrics.UserSyncErrors.WithLabelValues("sync_all_failed").Inc()
-        h.handleError(w, err)
-        return
-    }
+	users, err := h.syncAllHandler.Handle(ctx)
+	if err != nil {
+		h.metrics.UserSyncErrors.WithLabelValues("sync_all_failed").Inc()
+		h.handleError(w, err)
+		return
+	}
 
-    h.metrics.UserSyncTotal.WithLabelValues("success").Add(float64(len(users)))
-    h.logger.Info("all users synced successfully", zap.Int("count", len(users)))
+	h.metrics.UserSyncTotal.WithLabelValues("success").Add(float64(len(users)))
+	h.logger.Info("all users synced successfully", zap.Int("count", len(users)))
 
-    h.respondWithJSON(w, http.StatusOK, map[string]interface{}{
-        "message": "users synced successfully",
-        "count":   len(users),
-    })
+	h.respondWithJSON(w, http.StatusOK, map[string]interface{}{
+		"message": "users synced successfully",
+		"count":   len(users),
+	})
 }
 
 // GetUser godoc
@@ -123,20 +122,20 @@ func (h *UserHandler) SyncAllUsers(w http.ResponseWriter, r *http.Request) {
 // @Failure 500 {object} map[string]string
 // @Router /api/v1/users/{id} [get]
 func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
-    ctx, span := tracing.StartSpan(r.Context(), "GetUser")
-    defer span.End()
+	ctx, span := tracing.StartSpan(r.Context(), "GetUser")
+	defer span.End()
 
-    vars := mux.Vars(r)
-    userID := vars["id"]
+	vars := mux.Vars(r)
+	userID := vars["id"]
 
-    query := queries.GetUserQuery{UserID: userID}
-    user, err := h.getUserHandler.Handle(ctx, query)
-    if err != nil {
-        h.handleError(w, err)
-        return
-    }
+	query := queries.GetUserQuery{UserID: userID}
+	user, err := h.getUserHandler.Handle(ctx, query)
+	if err != nil {
+		h.handleError(w, err)
+		return
+	}
 
-    h.respondWithJSON(w, http.StatusOK, user)
+	h.respondWithJSON(w, http.StatusOK, user)
 }
 
 // HealthCheck godoc
@@ -147,49 +146,49 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 // @Success 200 {object} map[string]string
 // @Router /health [get]
 func (h *UserHandler) HealthCheck(w http.ResponseWriter, r *http.Request) {
-    h.respondWithJSON(w, http.StatusOK, map[string]string{
-        "status": "healthy",
-        "service": "ma_user_sync_service",
-    })
+	h.respondWithJSON(w, http.StatusOK, map[string]string{
+		"status":  "healthy",
+		"service": "ma_user_sync_service",
+	})
 }
 
 func (h *UserHandler) handleError(w http.ResponseWriter, err error) {
-    h.logger.Error("request failed", zap.Error(err))
+	h.logger.Error("request failed", zap.Error(err))
 
-    var statusCode int
-    var response map[string]string
+	var statusCode int
+	var response map[string]string
 
-    switch e := err.(type) {
-    case *errors.DomainError:
-        switch e.Code {
-        case "USER_NOT_FOUND":
-            statusCode = http.StatusNotFound
-        case "USER_ALREADY_EXISTS":
-            statusCode = http.StatusConflict
-        case "INVALID_USER_DATA":
-            statusCode = http.StatusBadRequest
-        default:
-            statusCode = http.StatusInternalServerError
-        }
-        response = map[string]string{
-            "error":   e.Code,
-            "message": e.Message,
-        }
-    default:
-        statusCode = http.StatusInternalServerError
-        response = map[string]string{
-            "error":   "INTERNAL_SERVER_ERROR",
-            "message": "an unexpected error occurred",
-        }
-    }
+	switch e := err.(type) {
+	case *errors.DomainError:
+		switch e.Code {
+		case "USER_NOT_FOUND":
+			statusCode = http.StatusNotFound
+		case "USER_ALREADY_EXISTS":
+			statusCode = http.StatusConflict
+		case "INVALID_USER_DATA":
+			statusCode = http.StatusBadRequest
+		default:
+			statusCode = http.StatusInternalServerError
+		}
+		response = map[string]string{
+			"error":   e.Code,
+			"message": e.Message,
+		}
+	default:
+		statusCode = http.StatusInternalServerError
+		response = map[string]string{
+			"error":   "INTERNAL_SERVER_ERROR",
+			"message": "an unexpected error occurred",
+		}
+	}
 
-    h.respondWithJSON(w, statusCode, response)
+	h.respondWithJSON(w, statusCode, response)
 }
 
 func (h *UserHandler) respondWithJSON(w http.ResponseWriter, status int, data interface{}) {
-    w.Header().Set("Content-Type", "application/json")
-    w.WriteHeader(status)
-    if err := json.NewEncoder(w).Encode(data); err != nil {
-        h.logger.Error("failed to encode response", zap.Error(err))
-    }
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		h.logger.Error("failed to encode response", zap.Error(err))
+	}
 }

@@ -1,25 +1,26 @@
 package commands
 
 import (
-    "context"
-    "github.com/mondc/ma_user_sync_service/internal/domain/user"
-    "github.com/mondc/ma_user_sync_service/internal/application/ports"
+	"context"
+
+	"github.com/mondc/mo_sync_service/internal/application/ports"
+	"github.com/mondc/mo_sync_service/internal/domain/user"
 )
 
 type SyncUserCommand struct {
-    UserID string
+	UserID string
 }
 
 type SyncUserHandler struct {
-    userService ports.UserSyncService
+	userService ports.UserSyncService
 }
 
 func NewSyncUserHandler(userService ports.UserSyncService) *SyncUserHandler {
-    return &SyncUserHandler{
-        userService: userService,
-    }
+	return &SyncUserHandler{
+		userService: userService,
+	}
 }
 
 func (h *SyncUserHandler) Handle(ctx context.Context, cmd SyncUserCommand) (*user.User, error) {
-    return h.userService.SyncUser(ctx, cmd.UserID)
+	return h.userService.SyncUser(ctx, cmd.UserID)
 }

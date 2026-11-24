@@ -13,8 +13,8 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
-	"github.com/mondc/ma_user_sync_service/internal/domain/user"
-	"github.com/mondc/ma_user_sync_service/internal/infrastructure/persistence/mysql"
+	"github.com/mondc/mo_sync_service/internal/domain/user"
+	"github.com/mondc/mo_sync_service/internal/infrastructure/persistence/mysql"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )

@@ -1,18 +1,17 @@
 package ports
 
 import (
-    "context"
-    "github.com/mondc/ma_user_sync_service/internal/domain/user"
+	"github.com/mondc/mo_sync_service/internal/domain/user"
 )
 
 type UserRepository interface {
-    user.Repository
+	user.Repository
 }
 
 type MainUserRepository interface {
-    user.Repository
+	user.Repository
 }
 
 type LocalUserRepository interface {
-    user.Repository
+	user.Repository
 }

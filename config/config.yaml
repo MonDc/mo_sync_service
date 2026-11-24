@@ -1,27 +1,27 @@
 server:
-  port: "8080"
-  read_timeout: 15
-  write_timeout: 15
-  idle_timeout: 60
+    port: '8081'
+    read_timeout: 15
+    write_timeout: 15
+    idle_timeout: 60
 
 log:
-  level: "info"
+    level: 'info'
 
 database:
-  mi:
-    host: ""    ## Will come from SQL_SERVER_22 env var # CENTRAL22 is a db server for all services now. In the future, we can separate them, to prevent single point of failure.
-    port: 3306
-    user: ""       # From .env
-    password: ""   # From .env
-    dbname: ""
-    max_conns: 25
-    min_conns: 5
-  
-  ma:
-    host: ""    # Use the same DB server for both services
-    port: 3306
-    user: ""       # From .env
-    password: ""   # From .env
-    dbname: ""
-    max_conns: 25
-    min_conns: 5
+    mi:
+        host: '' ## Will come from SQL_SERVER_22 env var # CENTRAL22 is a db server for all services now. In the future, we can separate them, to prevent single point of failure.
+        port: 3306
+        user: '' # From .env
+        password: '' # From .env
+        dbname: ''
+        max_conns: 25
+        min_conns: 5
+
+    ma:
+        host: '' # Use the same DB server for both services
+        port: 3306
+        user: '' # From .env
+        password: '' # From .env
+        dbname: ''
+        max_conns: 25
+        min_conns: 5

@@ -7,8 +7,8 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
-	"github.com/mondc/ma_user_sync_service/internal/domain/errors"
-	"github.com/mondc/ma_user_sync_service/internal/domain/user"
+	"github.com/mondc/mo_sync_service/internal/domain/errors"
+	"github.com/mondc/mo_sync_service/internal/domain/user"
 	"go.uber.org/zap"
 )
 
@@ -25,7 +25,7 @@ func NewMainRepository(db *sqlx.DB, logger *zap.Logger) user.Repository {
 }
 
 func (r *mainRepository) FindByID(ctx context.Context, id string) (*user.User, error) {
-	query := `SELECT id, public_id, email, first_name, last_name, date_of_birth, status, metadata, created_at, updated_at 
+	query := `SELECT id, public_id, email, first_name, last_name, date_of_birth, status, metadata, created_at, updated_at
               FROM mi_users WHERE id = ?`
 
 	var u user.User
@@ -42,7 +42,7 @@ func (r *mainRepository) FindByID(ctx context.Context, id string) (*user.User, e
 }
 
 func (r *mainRepository) FindByEmail(ctx context.Context, email string) (*user.User, error) {
-	query := `SELECT id, public_id, email, first_name, last_name, date_of_birth, status, metadata, created_at, updated_at 
+	query := `SELECT id, public_id, email, first_name, last_name, date_of_birth, status, metadata, created_at, updated_at
               FROM mi_users WHERE email = ?`
 
 	var u user.User
@@ -59,7 +59,7 @@ func (r *mainRepository) FindByEmail(ctx context.Context, email string) (*user.U
 }
 
 func (r *mainRepository) FindAll(ctx context.Context, limit, offset int) ([]*user.User, error) {
-	query := `SELECT id, public_id, email, first_name, last_name, date_of_birth, status, metadata, created_at, updated_at 
+	query := `SELECT id, public_id, email, first_name, last_name, date_of_birth, status, metadata, created_at, updated_at
               FROM mi_users LIMIT ? OFFSET ?`
 
 	var users []*user.User
