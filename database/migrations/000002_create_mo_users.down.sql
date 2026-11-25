@@ -1,4 +1,4 @@
 -- =====================================================
--- ROLLBACK: DROP TABLE ma_users
+-- ROLLBACK: DROP TABLE mo_users
 -- =====================================================
-DROP TABLE IF EXISTS `ma_users`;
+DROP TABLE IF EXISTS `mo_users`;
