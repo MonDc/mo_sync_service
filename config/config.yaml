@@ -17,7 +17,7 @@ database:
         max_conns: 25
         min_conns: 5
 
-    ma:
+    mo:
         host: '' # Use the same DB server for both services
         port: 3306
         user: '' # From .env
