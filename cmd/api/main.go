@@ -45,10 +45,10 @@ func initConfig() error {
 	viper.BindEnv("database.mi.password", "SQL_SERVER_22_DB_PASS")
 	viper.BindEnv("database.mi.dbname", "MI")
 
-	viper.BindEnv("database.ma.host", "SQL_SERVER_22")
-	viper.BindEnv("database.ma.user", "SQL_SERVER_22_DB_USER")
-	viper.BindEnv("database.ma.password", "SQL_SERVER_22_DB_PASS")
-	viper.BindEnv("database.ma.dbname", "MA")
+	viper.BindEnv("database.mo.host", "SQL_SERVER_22")
+	viper.BindEnv("database.mo.user", "SQL_SERVER_22_DB_USER")
+	viper.BindEnv("database.mo.password", "SQL_SERVER_22_DB_PASS")
+	viper.BindEnv("database.mo.dbname", "MO")
 
 	return nil
 }
@@ -73,7 +73,7 @@ func setupRouter(logger *zap.Logger, userSvc user.Service) *http.ServeMux {
 	router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"healthy","service":"ma-user-sync"}`))
+		w.Write([]byte(`{"status":"healthy","service":"mo-user-sync"}`))
 	})
 
 	// POST /api/v1/users/{id}/sync
@@ -114,21 +114,21 @@ func main() {
 	}
 	defer logger.Sync()
 
-	logger.Info("Starting MA User Sync Service")
+	logger.Info("Starting MO User Sync Service")
 
 	// 3. Initialize databases
-	miDB, maDB, err := initDatabases(logger)
+	miDB, moDB, err := initDatabases(logger)
 	if err != nil {
 		logger.Fatal("Failed to connect to databases", zap.Error(err))
 	}
 	defer miDB.Close()
-	defer maDB.Close()
+	defer moDB.Close()
 
 	logger.Info("Both databases connected successfully")
 
 	// 4. Initialize Repositories and Domain Service
 	mainRepo := mysql.NewMainRepository(miDB, logger)
-	localRepo := mysql.NewLocalRepository(maDB, logger)
+	localRepo := mysql.NewLocalRepository(moDB, logger)
 	userSvc := user.NewDomainService(mainRepo, localRepo)
 
 	// 5. Setup HTTP server
@@ -180,19 +180,19 @@ func initDatabases(logger *zap.Logger) (*sqlx.DB, *sqlx.DB, error) {
 		return nil, nil, fmt.Errorf("MI database: %w", err)
 	}
 
-	// MA Database (local users)
-	maDB, err := mysql.NewConnection(mysql.Config{
-		Host:     viper.GetString("database.ma.host"),
-		Port:     viper.GetInt("database.ma.port"),
-		User:     viper.GetString("database.ma.user"),
-		Password: viper.GetString("database.ma.password"),
-		DBName:   viper.GetString("database.ma.dbname"),
-		MaxConns: viper.GetInt("database.ma.max_conns"),
-		MinConns: viper.GetInt("database.ma.min_conns"),
-	}, logger.With(zap.String("db", "ma")))
+	// MO Database (local users)
+	moDB, err := mysql.NewConnection(mysql.Config{
+		Host:     viper.GetString("database.mo.host"),
+		Port:     viper.GetInt("database.mo.port"),
+		User:     viper.GetString("database.mo.user"),
+		Password: viper.GetString("database.mo.password"),
+		DBName:   viper.GetString("database.mo.dbname"),
+		MaxConns: viper.GetInt("database.mo.max_conns"),
+		MinConns: viper.GetInt("database.mo.min_conns"),
+	}, logger.With(zap.String("db", "mo")))
 	if err != nil {
-		return nil, nil, fmt.Errorf("MA database: %w", err)
+		return nil, nil, fmt.Errorf("MO database: %w", err)
 	}
 
-	return miDB, maDB, nil
+	return miDB, moDB, nil
 }
