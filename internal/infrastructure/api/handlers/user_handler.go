@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/mondc/mo_sync_service/internal/application/commands"
@@ -15,7 +16,6 @@ import (
 
 type UserHandler struct {
 	syncUserHandler *commands.SyncUserHandler
-	syncAllHandler  *commands.SyncAllUsersHandler
 	getUserHandler  *queries.GetUserHandler
 	logger          *zap.Logger
 	metrics         *metrics.Metrics
@@ -23,14 +23,12 @@ type UserHandler struct {
 
 func NewUserHandler(
 	syncUserHandler *commands.SyncUserHandler,
-	syncAllHandler *commands.SyncAllUsersHandler,
 	getUserHandler *queries.GetUserHandler,
 	logger *zap.Logger,
 	metrics *metrics.Metrics,
 ) *UserHandler {
 	return &UserHandler{
 		syncUserHandler: syncUserHandler,
-		syncAllHandler:  syncAllHandler,
 		getUserHandler:  getUserHandler,
 		logger:          logger,
 		metrics:         metrics,
@@ -58,8 +56,8 @@ func (h *UserHandler) SyncUser(w http.ResponseWriter, r *http.Request) {
 	h.metrics.ActiveSyncs.Inc()
 	defer h.metrics.ActiveSyncs.Dec()
 
-	timer := h.metrics.UserSyncDuration.WithLabelValues("sync_user").StartTimer()
-	defer timer.ObserveDuration()
+	start := time.Now()
+	defer h.metrics.UserSyncDuration.WithLabelValues("sync_user").Observe(time.Since(start).Seconds())
 
 	cmd := commands.SyncUserCommand{UserID: userID}
 	user, err := h.syncUserHandler.Handle(ctx, cmd)
@@ -76,38 +74,6 @@ func (h *UserHandler) SyncUser(w http.ResponseWriter, r *http.Request) {
 	)
 
 	h.respondWithJSON(w, http.StatusOK, user)
-}
-
-// SyncAllUsers godoc
-// @Summary Sync all users
-// @Description Sync all users from main database to local database
-// @Tags users
-// @Accept json
-// @Produce json
-// @Success 200 {object} map[string]interface{}
-// @Failure 500 {object} map[string]string
-// @Router /api/v1/users/sync/all [post]
-func (h *UserHandler) SyncAllUsers(w http.ResponseWriter, r *http.Request) {
-	ctx, span := tracing.StartSpan(r.Context(), "SyncAllUsers")
-	defer span.End()
-
-	timer := h.metrics.UserSyncDuration.WithLabelValues("sync_all").StartTimer()
-	defer timer.ObserveDuration()
-
-	users, err := h.syncAllHandler.Handle(ctx)
-	if err != nil {
-		h.metrics.UserSyncErrors.WithLabelValues("sync_all_failed").Inc()
-		h.handleError(w, err)
-		return
-	}
-
-	h.metrics.UserSyncTotal.WithLabelValues("success").Add(float64(len(users)))
-	h.logger.Info("all users synced successfully", zap.Int("count", len(users)))
-
-	h.respondWithJSON(w, http.StatusOK, map[string]interface{}{
-		"message": "users synced successfully",
-		"count":   len(users),
-	})
 }
 
 // GetUser godoc
@@ -148,7 +114,7 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 func (h *UserHandler) HealthCheck(w http.ResponseWriter, r *http.Request) {
 	h.respondWithJSON(w, http.StatusOK, map[string]string{
 		"status":  "healthy",
-		"service": "ma_user_sync_service",
+		"service": "mo_sync_service",
 	})
 }
 
