@@ -10,7 +10,7 @@ type Repository interface {
 	FindByEmail(ctx context.Context, email string) (*User, error)
 	FindAll(ctx context.Context, limit, offset int) ([]*User, error)
 
-	// Local repository operations (ma_users)
+	// Local repository operations (mo_users)
 	Save(ctx context.Context, user *User) error
 	Update(ctx context.Context, user *User) error
 	Delete(ctx context.Context, id string) error

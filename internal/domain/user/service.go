@@ -14,7 +14,7 @@ type Service interface {
 
 type domainService struct {
 	mainRepo  Repository // mi_users
-	localRepo Repository // ma_users
+	localRepo Repository // mo_users
 }
 
 func NewDomainService(mainRepo, localRepo Repository) Service {

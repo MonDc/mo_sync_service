@@ -24,11 +24,12 @@ func NewLocalRepository(db *sqlx.DB, logger *zap.Logger) user.Repository {
 }
 
 func (r *localRepository) FindByID(ctx context.Context, id string) (*user.User, error) {
-	query := `SELECT id, public_id, email, first_name, last_name, date_of_birth, status, metadata,
+	query := `SELECT id, public_id, ma_merchant_id, email, first_name, last_name,
+                     remaining_mo, has_mawathiq, tenant_status, settings,
                      original_created_at AS created_at,
                      original_updated_at AS updated_at,
                      last_synced_at AS synced_at
-              FROM ma_users WHERE id = ?`
+              FROM mo_users WHERE id = ?`
 
 	var u user.User
 	err := r.db.GetContext(ctx, &u, query, id)
@@ -44,11 +45,12 @@ func (r *localRepository) FindByID(ctx context.Context, id string) (*user.User, 
 }
 
 func (r *localRepository) FindByEmail(ctx context.Context, email string) (*user.User, error) {
-	query := `SELECT id, public_id, email, first_name, last_name, date_of_birth, status, metadata,
+	query := `SELECT id, public_id, ma_merchant_id, email, first_name, last_name,
+                     remaining_mo, has_mawathiq, tenant_status, settings,
                      original_created_at AS created_at,
                      original_updated_at AS updated_at,
                      last_synced_at AS synced_at
-              FROM ma_users WHERE email = ?`
+              FROM mo_users WHERE email = ?`
 
 	var u user.User
 	err := r.db.GetContext(ctx, &u, query, email)
@@ -64,11 +66,12 @@ func (r *localRepository) FindByEmail(ctx context.Context, email string) (*user.
 }
 
 func (r *localRepository) FindAll(ctx context.Context, limit, offset int) ([]*user.User, error) {
-	query := `SELECT id, public_id, email, first_name, last_name, date_of_birth, status, metadata,
+	query := `SELECT id, public_id, ma_merchant_id, email, first_name, last_name,
+                     remaining_mo, has_mawathiq, tenant_status, settings,
                      original_created_at AS created_at,
                      original_updated_at AS updated_at,
                      last_synced_at AS synced_at
-              FROM ma_users LIMIT ? OFFSET ?`
+              FROM mo_users LIMIT ? OFFSET ?`
 
 	var users []*user.User
 	err := r.db.SelectContext(ctx, &users, query, limit, offset)
@@ -81,15 +84,18 @@ func (r *localRepository) FindAll(ctx context.Context, limit, offset int) ([]*us
 }
 
 func (r *localRepository) Save(ctx context.Context, user *user.User) error {
-	query := `INSERT INTO ma_users (
-                id, public_id, email, first_name, last_name, date_of_birth,
-                status, metadata, original_created_at, original_updated_at,
+	// Note: On initial sync from MI, we don't have the merchant ID yet.
+	// We default it to 0 and let the MO app assign it later.
+	query := `INSERT INTO mo_users (
+                id, public_id, ma_merchant_id, email, first_name, last_name,
+                remaining_mo, has_mawathiq, tenant_status, settings,
+                original_created_at, original_updated_at,
                 last_synced_at, sync_status
-              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced')`
+              ) VALUES (?, ?, 0, ?, ?, ?, 0.00, 0, 'active', NULL, ?, ?, ?, 'synced')`
 
 	_, err := r.db.ExecContext(ctx, query,
-		user.ID, user.PublicID, user.Email, user.FirstName, user.LastName, user.DateOfBirth,
-		user.Status, user.Metadata, user.CreatedAt, user.UpdatedAt, user.SyncedAt)
+		user.ID, user.PublicID, user.Email, user.FirstName, user.LastName,
+		user.CreatedAt, user.UpdatedAt, user.SyncedAt)
 
 	if err != nil {
 		r.logger.Error("failed to save user", zap.Error(err), zap.String("user_id", user.ID))
@@ -100,14 +106,14 @@ func (r *localRepository) Save(ctx context.Context, user *user.User) error {
 }
 
 func (r *localRepository) Update(ctx context.Context, user *user.User) error {
-	query := `UPDATE ma_users
-              SET email = ?, first_name = ?, last_name = ?, date_of_birth = ?, status = ?,
-                  metadata = ?, original_updated_at = ?, last_synced_at = ?, sync_status = 'synced'
+	query := `UPDATE mo_users
+              SET email = ?, first_name = ?, last_name = ?,
+                  original_updated_at = ?, last_synced_at = ?, sync_status = 'synced'
               WHERE id = ?`
 
 	result, err := r.db.ExecContext(ctx, query,
-		user.Email, user.FirstName, user.LastName, user.DateOfBirth,
-		user.Status, user.Metadata, user.UpdatedAt, user.SyncedAt, user.ID)
+		user.Email, user.FirstName, user.LastName,
+		user.UpdatedAt, user.SyncedAt, user.ID)
 
 	if err != nil {
 		r.logger.Error("failed to update user", zap.Error(err), zap.String("user_id", user.ID))
@@ -127,7 +133,7 @@ func (r *localRepository) Update(ctx context.Context, user *user.User) error {
 }
 
 func (r *localRepository) Delete(ctx context.Context, id string) error {
-	query := `DELETE FROM ma_users WHERE id = ?`
+	query := `DELETE FROM mo_users WHERE id = ?`
 
 	result, err := r.db.ExecContext(ctx, query, id)
 	if err != nil {
@@ -148,7 +154,7 @@ func (r *localRepository) Delete(ctx context.Context, id string) error {
 }
 
 func (r *localRepository) Exists(ctx context.Context, id string) (bool, error) {
-	query := `SELECT EXISTS(SELECT 1 FROM ma_users WHERE id = ?)`
+	query := `SELECT EXISTS(SELECT 1 FROM mo_users WHERE id = ?)`
 
 	var exists bool
 	err := r.db.GetContext(ctx, &exists, query, id)
